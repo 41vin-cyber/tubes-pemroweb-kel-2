@@ -3,21 +3,42 @@ session_start();
 include 'conn.php';
 
 $search = isset($_GET['q']) ? trim($_GET['q']) : '';
+$category = isset($_GET['category']) ? trim($_GET['category']) : '';
 
+// prepare safe values
 $searchTerm = '%' . $search . '%';
-
 $searchSafe = mysqli_real_escape_string($conn, $searchTerm);
+$categorySafe = mysqli_real_escape_string($conn, $category);
 
-$sql = "SELECT * FROM products 
-        WHERE name LIKE '$searchSafe' 
-        OR description LIKE '$searchSafe'
-        ORDER BY id DESC";
+// build query with optional filters
+$sql = "SELECT * FROM products WHERE 1";
+
+if (!empty($search)) {
+    $sql .= " AND (name LIKE '$searchSafe' OR description LIKE '$searchSafe')";
+}
+
+if (!empty($category)) {
+    // assuming `category` column stores values like 'makeup', 'skincare', etc.
+    $sql .= " AND category = '$categorySafe'";
+}
+
+$sql .= " ORDER BY id DESC";
 
 $result = mysqli_query($conn, $sql);
 
 if (!$result) {
     die("Query gagal: " . mysqli_error($conn));
 }
+
+// list of categories (ubah sesuai data di database jika perlu)
+$categories = [
+    'makeup' => 'Makeup',
+    'skincare' => 'Skincare',
+    'haircare' => 'Haircare',
+    'bodycare' => 'Bodycare',
+    'nailcare' => 'Nailcare',
+    'fragrance' => 'Fragrance'
+];
 ?>
 
 <!DOCTYPE html>
@@ -42,6 +63,7 @@ if (!$result) {
             text-align: center;
             border: 1px solid #ccc;
             background: #fff;
+            list-style: none;
         }
 
         /* Gambar produk */
@@ -77,11 +99,45 @@ if (!$result) {
             background: #f8f8f8;
             cursor: pointer;
         }
+
+        /* Kategori list */
+        .categories {
+            display:flex;
+            gap:8px;
+            list-style:none;
+            padding:12px 20px;
+            margin:0;
+        }
+        .categories li a {
+            text-decoration: none;
+        }
+        .cat-btn {
+            padding:6px 10px;
+            border-radius:6px;
+            border:1px solid #ccc;
+            background:#fff;
+            cursor:pointer;
+            font-size:14px;
+        }
+        .cat-btn.active {
+            background:#222;
+            color:#fff;
+            border-color:#222;
+        }
+
+        /* Navbar */
+        nav ul {
+            display:flex;
+            gap:12px;
+            list-style:none;
+            padding:12px;
+            margin:0;
+        }
     </style>
 </head>
 <body>
     <nav>
-        <ul style="display:flex; gap:12px; list-style:none; padding:12px;">
+        <ul>
             <li><a href="auth/logout.php">Logout</a></li>
             <li><a href="cart/cart.php">Keranjang (<span id="cart-count">0</span>)</a></li>
             <li><a href="home.php">Home</a></li>
@@ -89,13 +145,56 @@ if (!$result) {
         </ul>
     </nav>
 
+    <div class="search-box" style="margin-bottom:16px;">
+        <form method="GET" action="">
+            <!-- preserve category when searching -->
+            <?php if ($category !== ''): ?>
+                <input type="hidden" name="category" value="<?php echo htmlspecialchars($category, ENT_QUOTES); ?>">
+            <?php endif; ?>
+            <input type="text" name="q" placeholder="Cari produk..." value="<?php echo htmlspecialchars($search, ENT_QUOTES); ?>">
+            <button type="submit">Cari</button>
+        </form>
+    </div>
+    
+    <!-- Kategori -->
+    <ul class="categories">
+        <!-- Tautan "Semua" yang membersihkan filter kategori, namun tetap menyertakan pencarian -->
+        <?php
+        // helper to build querystring preserving search
+        function build_query($params) {
+            return '?' . http_build_query($params);
+        }
+
+        // "Semua" link
+        $allParams = [];
+        if ($search !== '') $allParams['q'] = $search;
+        $allHref = build_query($allParams);
+        $isAllActive = ($category === '');
+        ?>
+        <li>
+            <a href="<?php echo htmlspecialchars($allHref, ENT_QUOTES); ?>">
+                <button class="cat-btn <?php echo $isAllActive ? 'active' : ''; ?>">Semua</button>
+            </a>
+        </li>
+
+        <?php foreach ($categories as $key => $label): 
+            $params = [];
+            if ($search !== '') $params['q'] = $search;
+            $params['category'] = $key;
+            $href = build_query($params);
+            $active = ($category === $key);
+        ?>
+        <li>
+            <a href="<?php echo htmlspecialchars($href, ENT_QUOTES); ?>">
+                <button class="cat-btn <?php echo $active ? 'active' : ''; ?>">
+                    <?php echo htmlspecialchars($label, ENT_QUOTES); ?>
+                </button>
+            </a>
+        </li>
+        <?php endforeach; ?>
+    </ul>
+
     <div style="padding: 0 20px;">
-        <div class="search-box" style="margin-bottom:16px;">
-            <form method="GET" action="">
-                <input type="text" name="q" placeholder="Cari produk..." value="<?php echo htmlspecialchars($search, ENT_QUOTES); ?>">
-                <button type="submit">Cari</button>
-            </form>
-        </div>
 
         <div class="product">
             <?php
@@ -110,21 +209,28 @@ if (!$result) {
                     // Ubah path jika gambar berada di folder uploads/ bukan assets/
                     $imagePath = 'assets/' . $imageFile;
             ?>
-                <div class="product-card">
-                    <img src="<?php echo $imagePath; ?>" alt="<?php echo htmlspecialchars($card['name'], ENT_QUOTES); ?>">
 
+            <div class="product-card">
+
+                <a href="detail_produk.php?id=<?php echo (int)$card['id']; ?>">
+                    <img src="<?php echo $imagePath; ?>" 
+                        alt="<?php echo htmlspecialchars($card['name'], ENT_QUOTES); ?>">
                     <h3><?php echo htmlspecialchars($card['name'], ENT_QUOTES); ?></h3>
 
                     <p class="price">
                         Rp <?php echo number_format($card['price'], 0, ',', '.'); ?>
                     </p>
+                </a>
+                
+                <button>beli sekarang</button>
+                <button class="btn add-to-cart" data-id="<?php echo (int)$card['id']; ?>">
+                    🛒
+                </button>
 
-                    <a href="detail_produk.php?id=<?php echo (int)$card['id']; ?>" class="btn">Detail</a>
 
-                    <button class="btn add-to-cart" data-id="<?php echo (int)$card['id']; ?>">
-                        Tambahkan ke Keranjang
-                    </button>
-                </div>
+            </div>
+
+
             <?php
                 endwhile;
             } else {
@@ -152,7 +258,7 @@ if (!$result) {
             });
     }
 
-    // updateCartCount();
+    updateCartCount();
 
     document.addEventListener('click', function(e) {
         if (e.target && e.target.matches('.add-to-cart')) {
