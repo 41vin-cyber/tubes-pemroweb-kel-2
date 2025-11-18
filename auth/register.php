@@ -1,9 +1,9 @@
 <?php
-// register.php
+
 include '../conn.php';
 
 $msg = "";
-// untuk mempertahankan value form saat ada error
+
 $old = [
     'username' => '',
     'email' => ''
@@ -16,11 +16,9 @@ if (isset($_POST['register'])) {
     $password = $_POST['password'] ?? '';
     $konfir_password = $_POST['konfir_password'] ?? '';
 
-    // simpan old values (untuk ditampilkan kembali di form jika error)
     $old['username'] = $username;
     $old['email'] = $email;
 
-    // validasi sederhana + validasi format email
     if ($password !== $konfir_password) {
         $msg = "Konfirmasi password tidak sesuai";
     } elseif ($username === '' || $email === '' || $password === '') {
@@ -28,39 +26,31 @@ if (isset($_POST['register'])) {
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         $msg = "Format email tidak valid!";
     } else {
-        // Cek apakah email sudah digunakan (prepared statement)
-        if ($stmt = $conn->prepare("SELECT id FROM users WHERE email = ? LIMIT 1")) {
-            $stmt->bind_param("s", $email);
-            $stmt->execute();
-            $stmt->store_result();
 
-            if ($stmt->num_rows > 0) {
-                $msg = "Email sudah digunakan!";
-                $stmt->close();
-            } else {
-                $stmt->close();
-                // Hash password dan insert (prepared statement)
-                $password_hash = password_hash($password, PASSWORD_DEFAULT);
-                if ($ins = $conn->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)")) {
-                    $ins->bind_param("sss", $username, $email, $password_hash);
-                    if ($ins->execute()) {
-                        // Registrasi sukses -> redirect ke login
-                        echo "<script>alert('Registrasi berhasil! Silakan login.'); window.location='login.php';</script>";
-                        exit;
-                    } else {
-                        $msg = "Gagal registrasi! (server)";
-                    }
-                    $ins->close();
-                } else {
-                    $msg = "Gagal menyiapkan query registrasi";
-                }
-            }
+        // Cek apakah email sudah digunakan (tanpa prepared statement)
+        $query = "SELECT id FROM users WHERE email = '$email' LIMIT 1";
+        $result = mysqli_query($conn, $query);
+
+        if (mysqli_num_rows($result) > 0) {
+            $msg = "Email sudah digunakan!";
         } else {
-            $msg = "Gagal menyiapkan query cek email";
+            // Hash password & insert tanpa prepared statement
+            $password_hash = password_hash($password, PASSWORD_DEFAULT);
+
+            $insert = "INSERT INTO users (username, email, password) 
+                       VALUES ('$username', '$email', '$password_hash')";
+
+            if (mysqli_query($conn, $insert)) {
+                echo "<script>alert('Registrasi berhasil! Silakan login.'); window.location='login.php';</script>";
+                exit;
+            } else {
+                $msg = "Gagal registrasi! (server)";
+            }
         }
     }
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
