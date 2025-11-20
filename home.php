@@ -11,15 +11,15 @@ $searchSafe = mysqli_real_escape_string($conn, $searchTerm);
 $categorySafe = mysqli_real_escape_string($conn, $category);
 
 // build query with optional filters
-// NOTE: exclude products with category = 'fragrance' entirely
-$sql = "SELECT * FROM products WHERE category <> 'fragrance'";
+// NOTE: fragrance is allowed now (removed exclusion)
+$sql = "SELECT * FROM products WHERE 1";
 
 if (!empty($search)) {
     $sql .= " AND (name LIKE '$searchSafe' OR description LIKE '$searchSafe')";
 }
 
 if (!empty($category)) {
-    // still allow filtering by other categories
+    // still allow filtering by categories including 'fragrance'
     $sql .= " AND category = '$categorySafe'";
 }
 
@@ -31,13 +31,14 @@ if (!$result) {
     die("Query gagal: " . mysqli_error($conn));
 }
 
-// categories list: fragrance removed
+// categories list: fragrance included
 $categories = [
     'makeup' => 'Makeup',
     'skincare' => 'Skincare',
     'haircare' => 'Haircare',
     'bodycare' => 'Bodycare',
-    'nailcare' => 'Nailcare'
+    'nailcare' => 'Nailcare',
+    'fragrance' => 'Fragrance'
 ];
 
 // path to placeholder image (make sure this file exists: assets/placeholder.png)
@@ -47,7 +48,7 @@ $placeholder = 'assets/placeholder.png';
 <html lang="id">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <title>Daftar Produk - Beauty Shop</title>
 
     <style>
@@ -78,9 +79,10 @@ $placeholder = 'assets/placeholder.png';
         line-height:1.35;
         -webkit-font-smoothing:antialiased;
         -moz-osx-font-smoothing:grayscale;
+        -webkit-tap-highlight-color: rgba(0,0,0,0);
     }
     a { color: inherit; text-decoration: none; }
-    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; -webkit-appearance:none; }
 
     /* ===== NAVBAR ===== */
     .site-header{
@@ -94,7 +96,6 @@ $placeholder = 'assets/placeholder.png';
         display:flex; align-items:center; justify-content:space-between; gap:16px;
         flex-wrap:wrap;
     }
-    /* left area containing only brand now */
     .nav-left{ display:flex; align-items:center; gap:12px; flex:0 1 auto; min-width:0; }
     .brand{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
     .brand-logo{ width:52px; height:52px; border-radius:10px; overflow:hidden; display:inline-flex; align-items:center; justify-content:center; background:linear-gradient(135deg,var(--accent-2),var(--accent)); box-shadow:0 6px 18px rgba(255,105,180,0.08); }
@@ -102,13 +103,10 @@ $placeholder = 'assets/placeholder.png';
     .brand-title{ font-weight:800; font-size:18px; color:var(--accent); line-height:1; }
     .brand-sub{ font-size:12px; color:#8a8a8a; margin-top:2px; }
 
-    /* removed nav-links visually; keep class if present elsewhere */
     .nav-links{ display:none; }
 
-    /* RIGHT ACTIONS (search + cart + profile) - search moved into actions so it sits beside cart */
     .nav-actions{ display:flex; gap:10px; align-items:center; justify-content:flex-end; margin-left:auto; margin-right:0; padding-right:4px; flex-shrink:0; }
 
-    /* cart: icon only (use svg if available) */
     .cart-btn{
         position:relative;
         width:44px;
@@ -137,40 +135,76 @@ $placeholder = 'assets/placeholder.png';
         line-height:1;
     }
 
-    /* profile icon button */
     .profile-btn{ width:44px; height:44px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; background:#fff; border:2px solid var(--accent); color:var(--accent); font-size:18px; cursor:pointer; transition: transform .12s ease, background .12s ease, color .12s ease; box-shadow: 0 6px 18px rgba(255,105,180,0.06); position:relative; }
     .profile-btn img{ width:20px; height:20px; border-radius:50%; display:block; object-fit:cover; }
     .profile-btn:hover, .profile-btn:focus { background:var(--accent); color:#fff; transform:translateY(-3px); outline:none; }
 
-    /* dropdown */
     .profile-dropdown{ position:absolute; top:calc(var(--nav-height) + 8px); right:6px; min-width:180px; background:#fff; border-radius:12px; box-shadow:0 14px 40px rgba(18,18,18,0.12); border:1px solid rgba(0,0,0,0.04); padding:6px; display:none; z-index:120; }
     .profile-dropdown.show{ display:block; }
     .profile-dropdown a { display:flex; gap:10px; padding:10px 12px; align-items:center; border-radius:8px; color:#222; font-weight:600; text-decoration:none; }
     .profile-dropdown a:hover, .profile-dropdown a:focus { background: rgba(255,77,148,0.06); color:var(--accent); outline:none; }
 
-    /* mobile menu */
     .mobile-menu{ display:none; width:100%; background:var(--glass); padding:12px 18px; border-top:1px solid rgba(0,0,0,0.03) }
 
-    /* SEARCH now designed to sit inside .nav-actions */
+    /* SEARCH inside nav-actions */
     .nav-search { display:flex; align-items:center; gap:8px; position:relative; margin-left:0; }
-    .search-input { width:220px; max-width: calc(100vw - 260px); padding:8px 12px; border-radius:10px; border:1px solid #ececec; background:#fff; box-shadow: 0 4px 10px rgba(14,14,14,0.03); transition: width .24s ease, box-shadow .18s ease, border-color .18s ease; font-size:14px; outline:none; }
-    .search-input:focus, .nav-search.expanded .search-input { width:320px; box-shadow: 0 12px 28px rgba(18,18,18,0.06); border-color: rgba(255,77,148,0.12); }
-    .nav-search button[type="submit"]{ padding:8px 12px; border-radius:10px; background:var(--accent); color:#fff; font-weight:700; cursor:pointer; box-shadow:0 8px 20px rgba(255,77,148,0.06); }
+    .search-input {
+        width: 220px;
+        max-width: min(320px, calc(var(--max-w) - 260px));
+        padding: 8px 12px;
+        border-radius: 10px;
+        border: 1px solid #ececec;
+        background: #fff;
+        box-shadow: 0 4px 10px rgba(14,14,14,0.03);
+        transition: width .24s ease, box-shadow .18s ease, border-color .18s ease;
+        font-size: 14px;
+        outline: none;
+    }
+    .search-input:focus, .nav-search.expanded .search-input { 
+        width: 320px;
+        box-shadow: 0 12px 28px rgba(18,18,18,0.06); 
+        border-color: rgba(255,77,148,0.12); 
+    }
+    .nav-search button[type="submit"]{ padding:9px 14px; border-radius:10px; background:var(--accent); color:#fff; font-weight:700; cursor:pointer; box-shadow:0 8px 20px rgba(255,77,148,0.06); }
 
-    /* rest of page (products etc) */
+    /* clear-search */
+    .clear-search {
+        position: absolute;
+        right: calc(12px + 48px + 8px);
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 18px;
+        cursor: pointer;
+        color: #999;
+        display: none;
+        user-select: none;
+        line-height:1;
+        padding:6px;
+        border-radius:8px;
+    }
+    .clear-search:hover, .clear-search:focus { color: var(--accent); background: rgba(255,77,148,0.04); }
+    .clear-search:focus { outline: 2px solid rgba(255,77,148,0.12); }
+
+    @media (max-width:900px){
+        .clear-search { right: calc(12px + 44px + 6px); }
+    }
+
+    /* rest of page */
     main.container{ max-width:var(--max-w); margin:18px auto; padding:8px 18px 60px; }
-    .categories{ display:flex; flex-wrap:wrap; gap:10px; margin:8px 0 18px; padding:0; list-style:none; }
-    .cat-btn{ padding:8px 14px; border-radius:999px; border:1px solid #ffdfe8; background:#fff; color:var(--accent); cursor:pointer; font-weight:600; font-size:14px; }
+    .categories{ display:flex; flex-wrap:nowrap; gap:10px; margin:8px 0 18px; padding:0; list-style:none; overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .categories::-webkit-scrollbar { height:6px; }
+    .categories::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius:999px; }
+    .cat-btn{ padding:8px 14px; border-radius:999px; border:1px solid #ffdfe8; background:#fff; color:var(--accent); cursor:pointer; font-weight:600; font-size:14px; white-space:nowrap; }
     .cat-btn.active{ background:var(--accent); color:#fff; border-color:var(--accent) }
 
     .product { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; align-items:stretch; }
-    .product-card{ background:#fff; border-radius:14px; box-shadow:var(--card-shadow); overflow:hidden; display:flex; flex-direction:column; transition: transform .18s ease, box-shadow .18s ease; min-height:420px; }
+    .product-card{ background:#fff; border-radius:14px; box-shadow:var(--card-shadow); overflow:hidden; display:flex; flex-direction:column; transition: transform .18s ease, box-shadow .18s ease; min-height:380px; }
     .product-card:hover{ transform:translateY(-6px); box-shadow:0 20px 40px rgba(255,105,180,0.08) }
     .img-wrap{ position:relative; aspect-ratio:4/3; overflow:hidden; background:linear-gradient(180deg,#fff7fa 0%, #fff0f5 100%); display:flex; align-items:center; justify-content:center; }
     .img-wrap img{ width:100%; height:100%; object-fit:cover; display:block; transition: transform .45s ease; }
     .product-card:hover .img-wrap img{ transform:scale(1.05); }
 
-    .card-body{ padding:16px; display:flex; flex-direction:column; gap:6px; flex:1 1 auto; }
+    .card-body{ padding:16px; display:flex; flex-direction:column; gap:8px; flex:1 1 auto; }
     .card-title{ font-size:16px; font-weight:800; color:#222; line-height:1.2; min-height:34px; margin:0; }
     .card-desc{ font-size:13px; color:var(--muted); min-height:30px; margin:0; overflow:hidden; margin-top:4px; }
 
@@ -179,15 +213,28 @@ $placeholder = 'assets/placeholder.png';
     .old-price{ font-size:13px; color:#b4b4b4; text-decoration:line-through; }
 
     .card-actions{ display:flex; gap:10px; margin-top:auto; padding-top:6px; align-items:center; }
-    .btn{ flex:1; padding:10px 12px; border-radius:12px; border:none; cursor:pointer; font-weight:800; font-size:14px; }
-    .btn-primary{ background:var(--accent); color:#fff; box-shadow:0 8px 20px rgba(255,77,148,0.06); }
+    .btn{ flex:1; padding:12px 14px; border-radius:12px; border:none; cursor:pointer; font-weight:800; font-size:14px; }
+    .btn-primary{ background:var(--accent); color:#fff; box-shadow:0 8px 20px rgba(255,77,148,0.06); height:48px; display:inline-flex; align-items:center; justify-content:center; }
     .btn-ghost{ background:#fff; border:1px solid #ffdfe8; color:var(--accent); min-width:52px; height:44px; display:inline-flex; align-items:center; justify-content:center; border-radius:12px; }
     .icon-btn{ width:48px; min-width:48px; height:44px; border-radius:12px; font-size:18px; }
 
     .toast { position: fixed; right: 20px; bottom: 20px; background: var(--toast-bg); color: #fff; padding: 10px 14px; border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,0.3); z-index: 9999; opacity: 0; transform: translateY(8px); transition: opacity .22s ease, transform .22s ease; pointer-events: none; font-weight:700; }
     .toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
 
-    /* RESPONSIVE */
+    /* Keep single product card same visual size as multiple cards (desktop/tablet) */
+    .product.single {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+    }
+    .product.single .product-card {
+        width: 260px;
+        max-width: 260px;
+        min-width: 240px;
+        margin: 0;
+    }
+
+    /* RESPONSIVE - tablet & small desktop */
     @media (max-width:900px){
         .nav-links{ display:none; }
         .nav-search { flex:1; justify-content:flex-end; }
@@ -223,27 +270,18 @@ $placeholder = 'assets/placeholder.png';
         .brand-title { font-size: 15px; }
         .brand-sub { display: none; }
 
-        /*
-         * New mobile ordering:
-         *  - Search on the left (takes remaining width)
-         *  - Cart button to the right of search
-         *  - Profile button after cart (farthest right)
-         *
-         * We keep desktop styles untouched; only change orders and sizing on very small screens.
-         */
-
-        /* actions container spans full width so we can control internal alignment */
+        /* actions container spans full width */
         .nav-actions {
             order: 2;
             width: 100%;
             display: flex;
             align-items: center;
-            justify-content: space-between; /* search left, controls right */
+            justify-content: space-between;
             gap: 8px;
             padding: 0;
         }
 
-        /* search becomes flexible and sits at left */
+        /* Search becomes flexible and sits at left */
         .nav-search {
             order: 1;
             flex: 1 1 auto;
@@ -253,25 +291,42 @@ $placeholder = 'assets/placeholder.png';
             margin: 0;
         }
         .nav-search form { width: 100%; display:flex; gap:8px; align-items:center; }
-        /* make input take remaining space (left) */
-        .search-input { width: 100%; max-width: none; padding:8px 10px; font-size:14px; }
+        .search-input { width: 100%; max-width: none; padding:10px 12px; font-size:15px; border-radius:10px; }
 
-        /* cart + profile grouped to the right */
-        .cart-btn { order: 2; width:40px; height:40px; flex: 0 0 auto; }
+        /* make submit button bigger on mobile for touch */
+        .nav-search button[type="submit"] { padding:10px 14px; font-size:15px; border-radius:10px; }
+
+        /* clear-search reposition to be closer to the right edge on small screens */
+        .clear-search { right: 72px; font-size:18px; padding:8px; }
+
+        /* cart + profile grouped to the right - enlarge slightly for finger taps */
+        .cart-btn { order: 2; width:44px; height:44px; flex: 0 0 auto; border-width:2px; }
         .profile-wrapper { order: 3; flex: 0 0 auto; display: flex; align-items: center; }
-        .profile-btn { order: 3; width:40px; height:40px; }
+        .profile-btn { order: 3; width:44px; height:44px; }
 
         .cart-count { top: -6px; right: -6px; padding: 3px 6px; font-size: 11px; }
 
         .mobile-menu { display: none; }
 
-        .img-wrap { aspect-ratio: 16/9; }
-        .product { grid-template-columns: repeat(1, 1fr); }
+        /* product layout: one column, card full width with comfortable spacing */
+        .product { grid-template-columns: repeat(1, 1fr); gap: 14px; }
+        .product-card { min-height: auto; border-radius:12px; }
+        .img-wrap { aspect-ratio: 16/9; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; }
+
+        .card-body { padding:14px; gap:8px; }
+        .card-title { font-size:16px; }
+        .card-desc { font-size:14px; min-height:40px; }
+
+        .btn-primary { height:50px; font-size:16px; border-radius:12px; }
+        .btn-ghost { height:50px; width:50px; border-radius:12px; }
     }
 
-    @media (max-width:700px){
-        .product{ grid-template-columns: repeat(2, 1fr); }
+    @media (max-width:360px){
+        main.container { padding-left:12px; padding-right:12px; }
+        .search-input { font-size:14px; padding:10px; }
+        .btn-primary { height:48px; font-size:15px; }
     }
+
     </style>
 </head>
 
@@ -282,7 +337,6 @@ $placeholder = 'assets/placeholder.png';
             <div class="nav-left" aria-hidden="false">
                 <div class="brand" aria-hidden="false">
                     <div class="brand-logo" aria-hidden="true">
-                        <!-- Pastikan file ini ada: assets/logo.png -->
                         <img src="assets/logo.png" alt="Beauty Shop">
                     </div>
                     <div>
@@ -308,6 +362,10 @@ $placeholder = 'assets/placeholder.png';
                             placeholder="Cari produk..."
                             value="<?php echo htmlspecialchars($search, ENT_QUOTES); ?>"
                             aria-label="Cari produk">
+
+                        <!-- clear (x) button: muncul hanya kalau ada teks -->
+                        <span id="clearSearch" class="clear-search" role="button" tabindex="0" aria-label="Bersihkan pencarian">✖</span>
+
                         <button type="submit" aria-label="Cari">Cari</button>
                     </form>
                 </div>
@@ -400,7 +458,7 @@ $placeholder = 'assets/placeholder.png';
                     <article class="product-card" aria-labelledby="p-<?php echo (int)$card['id']; ?>">
                         <div class="img-wrap" role="img" aria-label="<?php echo htmlspecialchars($card['name'], ENT_QUOTES); ?>">
                             <a href="detail_produk.php?id=<?php echo (int)$card['id']; ?>" style="display:block;width:100%;height:100%;">
-                                <img src="<?php echo $imagePath; ?>"
+                                <img src="<?php echo $imagePath; ?> "
                                      alt="<?php echo htmlspecialchars($card['name'], ENT_QUOTES); ?>"
                                      loading="lazy"
                                      onerror="this.onerror=null;this.src='<?php echo $placeholder; ?>';">
@@ -583,6 +641,122 @@ $placeholder = 'assets/placeholder.png';
             }
         }
     });
+
+    // CLEAR SEARCH BUTTON — hapus q (dan category) lalu kembali ke tampilan awal
+    (function(){
+        const input = document.getElementById("searchInput");
+        const clearBtn = document.getElementById("clearSearch");
+
+        if (!input || !clearBtn) return;
+
+        function toggleClear() {
+            clearBtn.style.display = input.value.length > 0 ? "block" : "none";
+        }
+
+        // show/hide on input
+        input.addEventListener("input", toggleClear);
+
+        // click clears => remove q and category from URL and reload to "tampilan awal"
+        clearBtn.addEventListener("click", function(e){
+            e.preventDefault();
+            input.value = "";
+            toggleClear();
+
+            // if URL API available, clean params and reload
+            try {
+                const url = new URL(window.location.href);
+                let changed = false;
+                if (url.searchParams.has('q')) { url.searchParams.delete('q'); changed = true; }
+                if (url.searchParams.has('category')) { url.searchParams.delete('category'); changed = true; }
+
+                // if there were any changes, navigate to cleaned URL to get default listing
+                if (changed) {
+                    // ensure we don't leave a trailing "?" (URL.toString handles it)
+                    const cleaned = url.pathname + (url.search ? url.search : '');
+                    // use assign to trigger a full reload (so server returns default list)
+                    window.location.assign(cleaned);
+                    return;
+                }
+            } catch (err) {
+                // fallback: if URL not supported, try simple reload
+                try { window.location.href = window.location.pathname; return; } catch (e) { /* ignore */ }
+            }
+
+            // If nothing to change, just focus input
+            input.focus();
+        });
+
+        // keyboard accessible (Enter / Space)
+        clearBtn.addEventListener('keydown', function(e){
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                clearBtn.click();
+            }
+        });
+
+        // initial check on page load
+        toggleClear();
+    })();
+
+    // === Prevent search staying expanded when user clicks category links ===
+    (function(){
+        const navSearchWrap = document.getElementById('navSearch');
+        const searchInput = navSearchWrap ? navSearchWrap.querySelector('.search-input') : null;
+        const categoryLinks = document.querySelectorAll('.categories a');
+
+        if (categoryLinks && categoryLinks.length) {
+            categoryLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    try {
+                        if (searchInput) searchInput.blur();
+                        if (navSearchWrap) navSearchWrap.classList.remove('expanded');
+                    } catch (e) { /* ignore */ }
+                });
+            });
+        }
+
+        // keyboard support for Enter/Space on focused category button/link
+        document.addEventListener('keydown', (e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && document.activeElement) {
+                const a = document.activeElement.closest && document.activeElement.closest('.categories a');
+                if (a) {
+                    if (searchInput) searchInput.blur();
+                    if (navSearchWrap) navSearchWrap.classList.remove('expanded');
+                }
+            }
+        });
+    })();
+
+    // Ensure single product keeps same visual size as multi-product layout (desktop/tablet)
+    (function(){
+        const productContainer = document.querySelector('.product');
+
+        if (!productContainer) return;
+
+        function updateSingleClass() {
+            const cards = productContainer.querySelectorAll('.product-card');
+            if (cards.length === 1) {
+                productContainer.classList.add('single');
+            } else {
+                productContainer.classList.remove('single');
+            }
+        }
+
+        // initial run
+        updateSingleClass();
+
+        // Observe DOM changes inside .product (safeguard if products replaced dynamically)
+        try {
+            const mo = new MutationObserver((mutations) => {
+                clearTimeout(productContainer._singleTimer);
+                productContainer._singleTimer = setTimeout(updateSingleClass, 40);
+            });
+            mo.observe(productContainer, { childList: true, subtree: false });
+        } catch (e) {
+            // fallback: update on window resize
+            window.addEventListener('resize', updateSingleClass);
+        }
+    })();
     </script>
 </body>
 </html>
