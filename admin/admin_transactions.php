@@ -1,19 +1,25 @@
 <?php
-session_start();
-include '../conn.php';
+include 'auth_admin.php';
 
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../auth/login.php");
+// UPDATE STATUS
+if (isset($_POST['set_status'])) {
+    $id = intval($_POST['id']);
+    $status = $_POST['status'];
+    
+    $valid_status = ['pending', 'completed', 'canceled'];
+    if (in_array($status, $valid_status)) {
+        mysqli_query($conn, "UPDATE transactions SET status = '$status' WHERE id = $id");
+    }
+    header("Location: admin_transactions.php");
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
-
-// Ambil semua transaksi user
-$orders = $conn->query("
-    SELECT id, total, metode_pembayaran, status, created_at FROM transactions
-    WHERE user_id = $user_id 
-    ORDER BY created_at DESC
+// LOAD TRANSAKSI
+$tx = mysqli_query($conn, "
+    SELECT t.id, t.user_id, t.total, t.status, t.created_at, u.username, u.email
+    FROM transactions t
+    LEFT JOIN users u ON t.user_id = u.id
+    ORDER BY t.id DESC
 ");
 ?>
 <!DOCTYPE html>
@@ -21,7 +27,7 @@ $orders = $conn->query("
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Riwayat Transaksi</title>
+    <title>Kelola Transaksi</title>
     <style>
         * {
             margin: 0;
@@ -31,16 +37,12 @@ $orders = $conn->query("
         
         body {
             font-family: Arial, sans-serif;
-<<<<<<< HEAD
             background: #f5f5f5;
-=======
-            background: #f9f1f5ff;
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
             padding: 20px;
         }
         
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
             padding: 30px;
@@ -53,11 +55,7 @@ $orders = $conn->query("
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-<<<<<<< HEAD
             border-bottom: 2px solid #667eea;
-=======
-            border-bottom: 2px solid #ffb3d9;
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
             padding-bottom: 20px;
         }
         
@@ -66,12 +64,13 @@ $orders = $conn->query("
             font-size: 24px;
         }
         
+        .nav {
+            display: flex;
+            gap: 15px;
+        }
+        
         .nav a {
-<<<<<<< HEAD
             color: #667eea;
-=======
-            color: #d63384;
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
             text-decoration: none;
             padding: 8px 15px;
             border-radius: 5px;
@@ -79,11 +78,7 @@ $orders = $conn->query("
         }
         
         .nav a:hover {
-<<<<<<< HEAD
             background: #667eea;
-=======
-            background: #ffb3d9;
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
             color: white;
         }
         
@@ -94,13 +89,8 @@ $orders = $conn->query("
         }
         
         th {
-<<<<<<< HEAD
             background: #667eea;
             color: white;
-=======
-            background: #ffb3d9;
-            color: #660033;
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
             padding: 15px;
             text-align: left;
             font-weight: bold;
@@ -112,11 +102,7 @@ $orders = $conn->query("
         }
         
         tr:hover {
-<<<<<<< HEAD
             background: #f9f9f9;
-=======
-            background: rgb(255, 204, 230);
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
         }
         
         .status-badge {
@@ -142,84 +128,83 @@ $orders = $conn->query("
             color: #721c24;
         }
         
-        .btn {
-            display: inline-block;
-            padding: 8px 15px;
-<<<<<<< HEAD
-            background: #5cb85c;
-=======
-            background: #ff66b3;
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
-            color: white;
-            text-decoration: none;
+        select {
+            padding: 8px;
+            border: 1px solid #ddd;
             border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        button {
+            padding: 8px 15px;
+            background: #5cb85c;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
             transition: background 0.3s;
         }
         
-        .btn:hover {
+        button:hover {
             background: #4cae4c;
         }
         
-        .empty {
-            text-align: center;
-            padding: 40px;
-            color: #999;
+        .form-inline {
+            display: flex;
+            gap: 10px;
+            align-items: center;
         }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
-        <h1>📋 Riwayat Transaksi</h1>
+        <h1>💰 Kelola Transaksi</h1>
         <div class="nav">
-            <a href="../home.php">← Kembali ke Home</a>
+            <a href="admin_users.php">Kelola User</a>
+            <a href="admin_products.php">Kelola Produk</a>
+            <a href="../logout.php" style="background: #d9534f; color: white;">Logout</a>
         </div>
     </div>
 
     <table>
         <tr>
-            <th>ID Transaksi</th>
-            <th>Total Pembayaran</th>
-            <th>Metode</th>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Total</th>
             <th>Status</th>
             <th>Tanggal</th>
             <th>Aksi</th>
         </tr>
 
-        <?php 
-        $no_orders = true;
-        while($row = $orders->fetch_assoc()) : 
-            $no_orders = false;
-        ?>
+        <?php while($t = mysqli_fetch_assoc($tx)) { ?>
         <tr>
-            <td>#<?= $row['id'] ?></td>
-            <td>Rp <?= number_format($row['total'], 0, ',', '.') ?></td>
-            <td><?= htmlspecialchars($row['metode_pembayaran']) ?></td>
+            <td><?= $t['id'] ?></td>
+            <td><?= isset($t['username']) ? htmlspecialchars($t['username']) : '-' ?></td>
+            <td><?= isset($t['email']) ? htmlspecialchars($t['email']) : '-' ?></td>
+            <td>Rp <?= number_format($t['total'], 0, ',', '.') ?></td>
             <td>
-                <span class="status-badge status-<?= $row['status'] ?>">
-                    <?= ucfirst($row['status']) ?>
+                <span class="status-badge status-<?= $t['status'] ?>">
+                    <?= ucfirst($t['status']) ?>
                 </span>
             </td>
-            <td><?= date('d/m/Y H:i', strtotime($row['created_at'])) ?></td>
+            <td><?= date('d/m/Y H:i', strtotime($t['created_at'])) ?></td>
             <td>
-                <a class="btn" href="order_detail.php?id=<?= $row['id'] ?>">
-                    Lihat Detail
-                </a>
+                <form method="post" class="form-inline">
+                    <input type="hidden" name="id" value="<?= $t['id'] ?>">
+                    <select name="status">
+                        <option value="pending" <?= $t['status']=="pending"?"selected":"" ?>>Pending</option>
+                        <option value="completed" <?= $t['status']=="completed"?"selected":"" ?>>Completed</option>
+                        <option value="canceled" <?= $t['status']=="canceled"?"selected":"" ?>>Canceled</option>
+                    </select>
+                    <button name="set_status">Set</button>
+                </form>
             </td>
         </tr>
-        <?php endwhile; ?>
+        <?php } ?>
     </table>
-    
-    <?php if($no_orders): ?>
-    <div class="empty">
-        <p style="font-size: 18px; color: #666;">Belum ada transaksi</p>
-        <a href="../home.php" class="btn" style="margin-top: 15px;">Mulai Belanja</a>
-    </div>
-    <?php endif; ?>
 </div>
 </body>
-<<<<<<< HEAD
 </html>
-=======
-</html>
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
