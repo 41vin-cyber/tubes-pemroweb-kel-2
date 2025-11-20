@@ -13,10 +13,14 @@ if (!isset($_GET['id'])) {
 }
 
 $order_id = intval($_GET['id']);
-$user_id = $_SESSION['user_id'];
+$user_id = intval($_SESSION['user_id']);
 
-// Ambil data transaction
-$query = mysqli_query($conn, "SELECT id, total, metode_pembayaran, alamat, pengiriman, ongkir, admin_fee, status, created_at FROM transactions WHERE id = $order_id AND user_id = $user_id");
+// Ambil data transaction (sanitasi minimal — kamu bisa ganti ke prepared statement jika mau)
+$query = mysqli_query($conn, "
+    SELECT id, total, metode_pembayaran, alamat, pengiriman, ongkir, admin_fee, status, created_at 
+    FROM transactions 
+    WHERE id = $order_id AND user_id = $user_id
+");
 $order = mysqli_fetch_assoc($query);
 
 if (!$order) {
@@ -38,214 +42,171 @@ $items = mysqli_query($conn, "
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detail Transaksi</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root{
+            --max-w:1180px;
+            --bg: #ffe6f2;
+            --accent: #ff4d94;
+            --accent-2: #ff77b7;
+            --pink-light: #ffb3d9;
+            --pink-mid: #ff66b3;
+            --pink-dark: #d63384;
+            --muted: #6b6b6b;
+            --card-shadow: 0 6px 20px rgba(255,105,180,0.12);
+            --radius: 12px;
+            --gap: 16px;
         }
-        
-        body {
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
-            padding: 20px;
+
+        *{box-sizing:border-box;margin:0;padding:0}
+        html,body{height:100%;font-family:"Poppins", Arial, sans-serif;background:var(--bg);color:#222;}
+        a{color:inherit;text-decoration:none}
+        .container{
+            max-width:var(--max-w);
+            margin:20px auto;
+            background:#fff;
+            padding:26px;
+            border-radius:var(--radius);
+            box-shadow:var(--card-shadow);
         }
-        
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+
+        /* header */
+        .header{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            gap:12px;
+            margin-bottom:22px;
+            padding-bottom:18px;
+            border-bottom:3px solid var(--pink-light);
         }
-        
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-<<<<<<< HEAD
-            border-bottom: 2px solid #667eea;
-=======
-            border-bottom: 2px solid #d63384;
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
-            padding-bottom: 20px;
+        .header h1{font-size:22px;color:var(--pink-dark);font-weight:800}
+        .status-badge{
+            padding:8px 14px;
+            border-radius:999px;
+            font-weight:800;
+            font-size:13px;
         }
-        
-        .header h1 {
-            color: #333;
-            font-size: 24px;
+        .status-pending{background:#fff3cd;color:#856404}
+        .status-completed{background:#d4edda;color:#155724}
+        .status-canceled{background:#f8d7da;color:#721c24}
+
+        .nav a{
+            display:inline-block;
+            padding:8px 12px;
+            border-radius:10px;
+            border:2px solid var(--pink-dark);
+            color:var(--pink-dark);
+            font-weight:700;
+            transition:transform .18s ease, background .18s ease, color .18s ease;
+            background:#fff;
         }
-        
-        .info-box {
-            background: #f9f9f9;
-            padding: 20px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-<<<<<<< HEAD
-            border-left: 4px solid #667eea;
-=======
-            border-left: 4px solid #ffb3d9;
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
+        .nav a:hover{ background:var(--pink-dark); color:#fff; transform:translateY(-3px); }
+
+        /* info box */
+        .info-box{
+            background:linear-gradient(180deg,#fff7fa 0%, #fff0f5 100%);
+            padding:18px;
+            border-radius:12px;
+            margin-bottom:18px;
+            border-left:6px solid var(--pink-mid);
         }
-        
-        .info-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 15px;
+        .info-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+        .info-row label{display:block; font-weight:700; color:var(--pink-dark); margin-bottom:6px;}
+        .info-row span{display:block; color:var(--muted)}
+
+        /* table */
+        table{ width:100%; border-collapse:collapse; margin-top:8px; }
+        th{
+            background:var(--pink-light);
+            color:var(--pink-dark);
+            text-align:left;
+            padding:14px;
+            font-weight:800;
+            font-size:14px;
         }
-        
-        .info-row label {
-            font-weight: bold;
-            color: #333;
+        td{ padding:12px 14px; border-bottom:1px solid #ffdfe8; vertical-align:middle; color:#222; }
+        tr:hover{ background:#fff0f6; }
+
+        /* rating form small */
+        select{ padding:6px 8px; border-radius:8px; border:1px solid #ffdfe8; font-weight:700 }
+        form.inline { margin-top:8px; display:inline-flex; gap:8px; align-items:center; }
+
+        /* summary */
+        .summary{
+            background:#fff;
+            padding:16px;
+            border-radius:12px;
+            margin-top:18px;
+            box-shadow:0 4px 14px rgba(0,0,0,0.04);
+            text-align:right;
         }
-        
-        .info-row span {
-            color: #666;
+        .summary-row{ display:flex; justify-content:space-between; gap:12px; margin-bottom:8px; color:#333; font-weight:700; }
+        .summary-row.total{ border-top:3px solid var(--pink-light); padding-top:12px; font-size:18px; color:var(--pink-dark) }
+
+        .btn{
+            display:inline-block;
+            padding:10px 16px;
+            border-radius:12px;
+            background:var(--pink-mid);
+            color:#fff;
+            font-weight:800;
+            text-decoration:none;
+            transition:transform .14s ease, background .14s ease;
         }
-        
-        .status-badge {
-            display: inline-block;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-weight: bold;
-        }
-        
-        .status-pending {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .status-completed {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .status-canceled {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-        }
-        
-        th {
-<<<<<<< HEAD
-            background: #667eea;
-            color: white;
-=======
-            background: #ffb3d9;
-            color: #660033;
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
-            padding: 15px;
-            text-align: left;
-            font-weight: bold;
-        }
-        
-        td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        tr:hover {
-            background: #f9f9f9;
-        }
-        
-        .summary {
-            background: #f9f9f9;
-            padding: 20px;
-            border-radius: 5px;
-            margin-top: 20px;
-            text-align: right;
-        }
-        
-        .summary-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
-        
-        .summary-row.total {
-<<<<<<< HEAD
-            border-top: 2px solid #667eea;
-            padding-top: 10px;
-            font-size: 20px;
-            font-weight: bold;
-            color: #667eea;
-=======
-            border-top: 2px solid #d63384;
-            padding-top: 10px;
-            font-size: 20px;
-            font-weight: bold;
-            color: #d63384;
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
-        }
-        
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-<<<<<<< HEAD
-            background: #0275d8;
-            color: white;
-=======
-            background: #ffb3d9;
-            color: #660033;
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
-            text-decoration: none;
-            border-radius: 5px;
-            margin-top: 20px;
-            transition: background 0.3s;
-        }
-        
-        .btn:hover {
-<<<<<<< HEAD
-            background: #025aa5;
-=======
-            background: #ffb3d9;
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
+        .btn:hover{ transform:translateY(-3px); background:var(--pink-dark); color:#fff }
+
+        /* responsive */
+        @media (max-width:768px){
+            .info-row{ grid-template-columns:1fr; }
+            table, thead, tbody, th, td, tr{ display:block; }
+            th{ display:none; }
+            tr{ background:#fff; margin-bottom:14px; padding:12px; border-radius:10px; box-shadow:var(--card-shadow); }
+            td{ border:none; padding:8px 0; display:flex; justify-content:space-between; }
+            td:before{ content:attr(data-label); font-weight:800; color:var(--pink-dark); margin-right:8px; }
+            .summary{text-align:left}
         }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
-        <h1>Detail Transaksi #<?= $order['id'] ?></h1>
-        <span class="status-badge status-<?= $order['status'] ?>">
-            <?= ucfirst($order['status']) ?>
+        <h1>Detail Transaksi #<?= htmlspecialchars($order['id']) ?></h1>
+        <span class="status-badge status-<?= htmlspecialchars($order['status']) ?>">
+            <?= ucfirst(htmlspecialchars($order['status'])) ?>
         </span>
     </div>
 
-    <div class="info-box">
+    <div class="info-box" role="region" aria-label="Informasi transaksi">
         <div class="info-row">
             <div>
-                <label>Tanggal Transaksi:</label>
-                <span><?= date('d/m/Y H:i', strtotime($order['created_at'])) ?></span>
+                <label>Tanggal Transaksi</label>
+                <span><?= htmlspecialchars(date('d/m/Y H:i', strtotime($order['created_at']))) ?></span>
             </div>
             <div>
-                <label>Metode Pembayaran:</label>
+                <label>Metode Pembayaran</label>
                 <span><?= htmlspecialchars($order['metode_pembayaran']) ?></span>
             </div>
         </div>
+
         <div class="info-row">
             <div>
-                <label>Jenis Pengiriman:</label>
+                <label>Jenis Pengiriman</label>
                 <span><?= htmlspecialchars($order['pengiriman']) ?></span>
             </div>
+            <div>
+                <label>Ongkir</label>
+                <span>Rp <?= number_format((float)$order['ongkir'], 0, ',', '.') ?></span>
+            </div>
         </div>
+
         <div>
-            <label>Alamat Pengiriman:</label>
-            <span><?= htmlspecialchars($order['alamat']) ?></span>
+            <label>Alamat Pengiriman</label>
+            <span><?= nl2br(htmlspecialchars($order['alamat'])) ?></span>
         </div>
     </div>
 
-    <h2 style="margin-bottom: 15px;">📦 Detail Produk</h2>
+    <h2 style="margin:0 0 12px 0; color:var(--pink-dark); font-size:18px;">📦 Detail Produk</h2>
 
-    <table>
+    <table role="table" aria-label="Daftar produk">
         <tr>
             <th>Nama Produk</th>
             <th>Harga</th>
@@ -256,44 +217,41 @@ $items = mysqli_query($conn, "
         <?php
         $subtotal_produk = 0;
         while ($row = mysqli_fetch_assoc($items)) :
-            $subtotal_produk += $row['subtotal'];
-            $prod_id = (int)$row['product_id'];
+            $subtotal_produk += (float)$row['subtotal'];
+            $prod_id = intval($row['product_id']);
         ?>
         <tr>
-            <td><?= htmlspecialchars($row['product_name']) ?></td>
-            <td>Rp <?= number_format($row['price']) ?></td>
-            <td><?= $row['quantity'] ?></td>
-            <td>Rp <?= number_format($row['subtotal']) ?></td>
+            <td data-label="Nama Produk"><?= htmlspecialchars($row['product_name']) ?></td>
+            <td data-label="Harga">Rp <?= number_format((float)$row['price'], 0, ',', '.') ?></td>
+            <td data-label="Jumlah"><?= intval($row['quantity']) ?></td>
+            <td data-label="Subtotal">Rp <?= number_format((float)$row['subtotal'], 0, ',', '.') ?></td>
         </tr>
         <tr>
-            <td colspan="4">
+            <td colspan="4" style="background:transparent; border-bottom:none; padding-top:6px;">
                 <?php
                 if ($order['status'] === 'completed') {
                     // Check existing review for this user/product/transaction
-<<<<<<< HEAD
-                    $check = mysqli_query($conn, "SELECT rating FROM `product_reviews` WHERE user_id = $user_id AND product_id = $prod_id AND transaction_id = $order_id LIMIT 1");
-=======
                     $check = mysqli_query($conn, "SELECT rating FROM product_reviews WHERE user_id = $user_id AND product_id = $prod_id AND transaction_id = $order_id LIMIT 1");
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
                     if ($check && mysqli_num_rows($check) > 0) {
                         $rv = mysqli_fetch_assoc($check);
-                        echo '<strong>Rating Anda:</strong> ' . str_repeat('★', (int)$rv['rating']) . str_repeat('☆', 5-(int)$rv['rating']);
+                        $rating = intval($rv['rating']);
+                        echo '<strong>Rating Anda:</strong> ' . str_repeat('★', $rating) . str_repeat('☆', 5-$rating);
                     } else {
                         // show rating form only
                         ?>
-                        <form action="../review_add.php" method="POST" style="margin-top:8px;">
+                        <form class="inline" action="../review_add.php" method="POST" style="margin-top:8px;">
                             <input type="hidden" name="product_id" value="<?= $prod_id ?>">
                             <input type="hidden" name="transaction_id" value="<?= $order_id ?>">
-                            <label>Rating: </label>
-                            <select name="rating" required>
+                            <label for="rating-<?= $prod_id ?>" style="color:var(--pink-dark); font-weight:700;">Rating:</label>
+                            <select id="rating-<?= $prod_id ?>" name="rating" required>
                                 <option value="">Pilih Bintang</option>
-                                <option value="5">★★★★★ (5 Bintang)</option>
-                                <option value="4">★★★★☆ (4 Bintang)</option>
-                                <option value="3">★★★☆☆ (3 Bintang)</option>
-                                <option value="2">★★☆☆☆ (2 Bintang)</option>
-                                <option value="1">★☆☆☆☆ (1 Bintang)</option>
+                                <option value="5">★★★★★ (5)</option>
+                                <option value="4">★★★★☆ (4)</option>
+                                <option value="3">★★★☆☆ (3)</option>
+                                <option value="2">★★☆☆☆ (2)</option>
+                                <option value="1">★☆☆☆☆ (1)</option>
                             </select>
-                            <button type="submit" style="margin-left:8px;">Kirim Rating</button>
+                            <button type="submit" class="btn" style="padding:8px 12px; font-size:14px;">Kirim Rating</button>
                         </form>
                         <?php
                     }
@@ -304,30 +262,16 @@ $items = mysqli_query($conn, "
         <?php endwhile; ?>
     </table>
 
-    <div class="summary">
-        <div class="summary-row">
-            <span>Subtotal Produk:</span>
-            <span>Rp <?= number_format($subtotal_produk) ?></span>
-        </div>
-        <div class="summary-row">
-            <span>Ongkir:</span>
-            <span>Rp <?= number_format($order['ongkir']) ?></span>
-        </div>
-        <div class="summary-row">
-            <span>Admin Fee:</span>
-            <span>Rp <?= number_format($order['admin_fee']) ?></span>
-        </div>
-        <div class="summary-row total">
-            <span>Total Pembayaran:</span>
-            <span>Rp <?= number_format($order['total']) ?></span>
-        </div>
+    <div class="summary" aria-label="Ringkasan pembayaran">
+        <div class="summary-row"><span>Subtotal Produk:</span><span>Rp <?= number_format($subtotal_produk, 0, ',', '.') ?></span></div>
+        <div class="summary-row"><span>Ongkir:</span><span>Rp <?= number_format((float)$order['ongkir'], 0, ',', '.') ?></span></div>
+        <div class="summary-row"><span>Admin Fee:</span><span>Rp <?= number_format((float)$order['admin_fee'], 0, ',', '.') ?></span></div>
+        <div class="summary-row total"><span>Total Pembayaran:</span><span>Rp <?= number_format((float)$order['total'], 0, ',', '.') ?></span></div>
     </div>
 
-    <a href="order_history.php" class="btn">← Kembali ke Riwayat Transaksi</a>
+    <div style="margin-top:18px;">
+        <a href="order_history.php" class="btn">← Kembali ke Riwayat Transaksi</a>
+    </div>
 </div>
 </body>
-<<<<<<< HEAD
 </html>
-=======
-</html>
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253

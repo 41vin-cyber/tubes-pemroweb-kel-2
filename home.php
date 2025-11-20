@@ -313,7 +313,7 @@ $placeholder = 'assets/placeholder.png';
                 </div>
 
                 <!-- Cart: icon-only using svg if present, otherwise fallback to emoji -->
-                <button class="cart-btn" id="cartBtn" onclick="location.href='checkout/checkout.php'" aria-label="Buka keranjang">
+                <button class="cart-btn" id="cartBtn" onclick="location.href='cart/cart.php'" aria-label="Buka keranjang">
                     <?php if (file_exists('assets/icon-cart.svg')): ?>
                         <img src="assets/icon-cart.svg" alt="Keranjang">
                     <?php else: ?>
@@ -336,7 +336,7 @@ $placeholder = 'assets/placeholder.png';
 
                     <div id="profileDropdown" class="profile-dropdown" role="menu" aria-labelledby="profileBtn">
                         <a href="home.php" role="menuitem" tabindex="0">🏠 Home</a>
-                        <a href="checkout/checkout_process.php" role="menuitem" tabindex="0">📦 Pesanan Saya</a>
+                        <a href="order/order_history.php" role="menuitem" tabindex="0">📦 Pesanan Saya</a>
                         <a href="auth/logout.php" role="menuitem" tabindex="0">🔓 Logout</a>
                     </div>
                 </div>
@@ -346,7 +346,7 @@ $placeholder = 'assets/placeholder.png';
             <div id="mobileMenu" class="mobile-menu" role="region" aria-hidden="true">
                 <div style="display:flex;flex-direction:column;gap:8px">
                     <a href="home.php" style="padding:10px;border-radius:8px;">Home</a>
-                    <a href="checkout/checkout_process.php" style="padding:10px;border-radius:8px;">Pesanan Saya</a>
+                    <a href="order/order_history.php" style="padding:10px;border-radius:8px;">Pesanan Saya</a>
                     <a href="cart/cart.php" style="padding:10px;border-radius:8px;">Keranjang</a>
                     <a href="auth/logout.php" style="padding:10px;border-radius:8px;">Logout</a>
                 </div>
@@ -424,7 +424,7 @@ $placeholder = 'assets/placeholder.png';
                             </div>
 
                             <div class="card-actions">
-                                <button class="btn btn-primary" onclick="location.href='detail_produk.php?id=<?php echo (int)$card['id']; ?>'">Beli sekarang</button>
+                                <button class="btn btn-primary" onclick="location.href='checkout/checkout.php?product_id=<?php echo (int)$card['id']; ?>'">Beli sekarang</button>
 
                                 <button class="btn btn-ghost icon-btn add-to-cart" data-id="<?php echo (int)$card['id']; ?>" aria-label="Tambah ke keranjang">
                                     🛒

@@ -9,9 +9,9 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// Ambil semua transaksi user
 $orders = $conn->query("
-    SELECT id, total, metode_pembayaran, status, created_at FROM transactions
+    SELECT id, total, metode_pembayaran, status, created_at 
+    FROM transactions
     WHERE user_id = $user_id 
     ORDER BY created_at DESC
 ");
@@ -22,153 +22,181 @@ $orders = $conn->query("
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Riwayat Transaksi</title>
+
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root{
+            --pink-bg: #ffe6f2;
+            --pink-light: #ffb3d9;
+            --pink-mid: #ff66b3;
+            --pink-dark: #d63384;
+            --text-dark: #660033;
+            --box-shadow: 0 6px 20px rgba(255, 105, 180, 0.12);
         }
-        
-        body {
-            font-family: Arial, sans-serif;
-<<<<<<< HEAD
-            background: #f5f5f5;
-=======
-            background: #f9f1f5ff;
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
-            padding: 20px;
+
+        *{
+            margin:0;
+            padding:0;
+            box-sizing:border-box;
         }
-        
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+
+        body{
+            font-family: "Poppins", Arial, sans-serif;
+            background: var(--pink-bg);
+            padding:20px;
         }
-        
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-<<<<<<< HEAD
-            border-bottom: 2px solid #667eea;
-=======
-            border-bottom: 2px solid #ffb3d9;
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
-            padding-bottom: 20px;
+
+        .container{
+            max-width:1000px;
+            margin:0 auto;
+            background:#fff;
+            padding:30px;
+            border-radius:14px;
+            box-shadow: var(--box-shadow);
         }
-        
-        .header h1 {
-            color: #333;
-            font-size: 24px;
+
+        /* HEADER */
+        .header{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:30px;
+            padding-bottom:20px;
+            border-bottom:3px solid var(--pink-light);
         }
-        
-        .nav a {
-<<<<<<< HEAD
-            color: #667eea;
-=======
-            color: #d63384;
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
-            text-decoration: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            transition: background 0.3s;
+
+        .header h1{
+            font-size:26px;
+            color:var(--pink-dark);
+            font-weight:800;
         }
-        
-        .nav a:hover {
-<<<<<<< HEAD
-            background: #667eea;
-=======
-            background: #ffb3d9;
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
-            color: white;
+
+        .nav a{
+            background:#fff;
+            border:2px solid var(--pink-dark);
+            padding:8px 14px;
+            border-radius:8px;
+            color:var(--pink-dark);
+            text-decoration:none;
+            font-weight:600;
+            transition:0.25s;
         }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
+
+        .nav a:hover{
+            background:var(--pink-dark);
+            color:#fff;
+            transform:translateY(-3px);
         }
-        
-        th {
-<<<<<<< HEAD
-            background: #667eea;
-            color: white;
-=======
-            background: #ffb3d9;
-            color: #660033;
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
-            padding: 15px;
-            text-align: left;
-            font-weight: bold;
+
+        /* TABLE */
+        table{
+            width:100%;
+            border-collapse:collapse;
+            margin-top:10px;
+            overflow:hidden;
         }
-        
-        td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #eee;
+
+        th{
+            background:var(--pink-light);
+            color:var(--text-dark);
+            padding:14px;
+            font-size:15px;
+            text-align:left;
+            font-weight:700;
         }
-        
-        tr:hover {
-<<<<<<< HEAD
-            background: #f9f9f9;
-=======
-            background: rgb(255, 204, 230);
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
+
+        td{
+            padding:14px;
+            border-bottom:1px solid #ffd6ea;
+            color:#333;
+            font-size:14px;
         }
-        
-        .status-badge {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 12px;
+
+        tr:hover{
+            background:#ffe6f7;
         }
-        
-        .status-pending {
-            background: #fff3cd;
-            color: #856404;
+
+        /* BADGE STATUS */
+        .status-badge{
+            padding:6px 12px;
+            border-radius:999px;
+            font-weight:700;
+            font-size:12px;
         }
-        
-        .status-completed {
-            background: #d4edda;
-            color: #155724;
+
+        .status-pending{
+            background:#fff3cd;
+            color:#856404;
         }
-        
-        .status-canceled {
-            background: #f8d7da;
-            color: #721c24;
+
+        .status-completed{
+            background:#d4edda;
+            color:#155724;
         }
-        
-        .btn {
-            display: inline-block;
-            padding: 8px 15px;
-<<<<<<< HEAD
-            background: #5cb85c;
-=======
-            background: #ff66b3;
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background 0.3s;
+
+        .status-canceled{
+            background:#f8d7da;
+            color:#721c24;
         }
-        
-        .btn:hover {
-            background: #4cae4c;
+
+        /* BUTTON */
+        .btn{
+            display:inline-block;
+            padding:8px 14px;
+            background:var(--pink-mid);
+            color:#fff;
+            border-radius:8px;
+            text-decoration:none;
+            font-weight:700;
+            transition:0.25s;
         }
-        
-        .empty {
-            text-align: center;
-            padding: 40px;
-            color: #999;
+
+        .btn:hover{
+            background:var(--pink-dark);
+            transform:translateY(-3px);
+        }
+
+        .empty{
+            text-align:center;
+            padding:40px 10px;
+            color:#777;
+            font-size:16px;
+        }
+
+        /* RESPONSIVE */
+        @media(max-width:768px){
+            table, thead, tbody, th, td, tr{
+                display:block;
+            }
+
+            th{ display:none; }
+
+            tr{
+                background:#fff;
+                margin-bottom:14px;
+                padding:12px;
+                border-radius:12px;
+                box-shadow: var(--box-shadow);
+            }
+
+            td{
+                border:none;
+                padding:8px 0;
+                display:flex;
+                justify-content:space-between;
+            }
+
+            td:before{
+                content: attr(data-label);
+                font-weight:700;
+                color:var(--pink-dark);
+            }
         }
     </style>
 </head>
+
 <body>
 <div class="container">
+
     <div class="header">
         <h1>📋 Riwayat Transaksi</h1>
         <div class="nav">
@@ -188,38 +216,33 @@ $orders = $conn->query("
 
         <?php 
         $no_orders = true;
-        while($row = $orders->fetch_assoc()) : 
+        while($row = $orders->fetch_assoc()):
             $no_orders = false;
         ?>
         <tr>
-            <td>#<?= $row['id'] ?></td>
-            <td>Rp <?= number_format($row['total'], 0, ',', '.') ?></td>
-            <td><?= htmlspecialchars($row['metode_pembayaran']) ?></td>
-            <td>
+            <td data-label="ID">#<?= $row['id'] ?></td>
+            <td data-label="Total">Rp <?= number_format($row['total'],0,',','.') ?></td>
+            <td data-label="Metode"><?= htmlspecialchars($row['metode_pembayaran']) ?></td>
+            <td data-label="Status">
                 <span class="status-badge status-<?= $row['status'] ?>">
                     <?= ucfirst($row['status']) ?>
                 </span>
             </td>
-            <td><?= date('d/m/Y H:i', strtotime($row['created_at'])) ?></td>
-            <td>
-                <a class="btn" href="order_detail.php?id=<?= $row['id'] ?>">
-                    Lihat Detail
-                </a>
+            <td data-label="Tanggal"><?= date('d/m/Y H:i', strtotime($row['created_at'])) ?></td>
+            <td data-label="Aksi">
+                <a class="btn" href="order_detail.php?id=<?= $row['id'] ?>">Lihat Detail</a>
             </td>
         </tr>
         <?php endwhile; ?>
     </table>
-    
+
     <?php if($no_orders): ?>
-    <div class="empty">
-        <p style="font-size: 18px; color: #666;">Belum ada transaksi</p>
-        <a href="../home.php" class="btn" style="margin-top: 15px;">Mulai Belanja</a>
-    </div>
+        <div class="empty">
+            Belum ada transaksi<br>
+            <a href="../home.php" class="btn" style="margin-top:15px;">Mulai Belanja</a>
+        </div>
     <?php endif; ?>
+
 </div>
 </body>
-<<<<<<< HEAD
 </html>
-=======
-</html>
->>>>>>> 95f62f5f7d4b17f86e8998d546e77ae5a2fb9253
