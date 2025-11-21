@@ -378,6 +378,19 @@ $placeholder = 'assets/placeholder.png';
         .search-input { font-size:14px; padding:10px; }
         .btn-primary { height:48px; font-size:15px; }
     }
+    .hero {
+        position: relative;
+        width: 100%;
+        height: 510px;
+        overflow: hidden;
+    }
+    .hero-img {
+        width: 100%;
+        height: 88%;
+        margin-top: 20px;
+        object-fit: cover;  
+        filter: brightness(60%);
+    }
 
     </style>
 </head>
@@ -492,6 +505,10 @@ $placeholder = 'assets/placeholder.png';
                 </li>
             <?php endforeach; ?>
         </ul>
+       
+        <section class="hero">
+            <img class="hero-img" src="assets/iklan.jpg" alt="Hero Banner">
+        </section>
 
         <div class="product" aria-live="polite">
             <?php
