@@ -402,7 +402,7 @@ $placeholder = 'assets/placeholder.png';
             <div class="nav-left" aria-hidden="false">
                 <div class="brand" aria-hidden="false">
                     <div class="brand-logo" aria-hidden="true">
-                        <img src="assets/logo.png" alt="Beauty Shop">
+                        <img src="assets/logo.jpg" alt="Beauty Shop">
                     </div>
                     <div>
                         <div class="brand-title">Beauty Shop</div>
